@@ -262,6 +262,7 @@
         overflow: hidden; /* Hide scrollbars */
         overflow-y: auto;
         white-space: wrap; /* Prevent text from wrapping to the next line */
+        position: relative;
       }
 
       svg {
@@ -351,14 +352,22 @@
         background-color: #e8f0f5;
       }
 
+      /* Updated CSS */
       .color-indicator {
-        width: 12px;
-        height: 12px;
+        width: 22px;
+        height: 22px;
         border: 1px solid #666666;
         position: absolute;
         right: 16px;
         top: 50%;
         transform: translateY(-50%);
+        display: flex;
+        justify-content: center;
+        align-items: center; /* Center vertically */
+      }
+
+      .color-indicator span {
+        font-size: 11px;
       }
 
       .text-container {
@@ -463,6 +472,62 @@
       .range-slider input[type="range"] {
         width: 100%;
       }
+
+      /* Tooltip text */
+      .toolbox_button .tooltiptext {
+        opacity: 0; /* Start with opacity 0 */
+        width: 72px;
+        background-color: #4390df;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        top: 12px;
+        left: 110%;
+        font-weight: 400;
+        font-size: 16px;
+        transition: opacity 0.3s ease-in-out; /* Add a transition effect */
+      }
+
+      .toolbox_button .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 100%;
+        margin-top: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent #4390df transparent transparent;
+        pointer-events: none; /* Disable pointer events to ignore hover on tooltip text */
+      }
+
+      /* Show the tooltip text with opacity when you mouse over the tooltip container */
+      .toolbox_button:hover .tooltiptext {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Hide the tooltip when you are not hovering over the tooltip container */
+      .toolbox_button:not(:hover) .tooltiptext {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      /* Character limit */
+      .exceeded_character_limit {
+        /* position: absolute; 
+        z-index: 100;
+        margin-left: 8px;
+        margin-top: -24px;
+        */
+        margin-bottom: 8px;
+        color: #4390df;
+        font-size: 11px;
+        font-style: italic;
+        text-align: right;
+      }
     </style>
   </head>
   <body>
@@ -487,6 +552,7 @@
             fill="#666"
           />
         </svg>
+        <span class="tooltiptext">File</span>
       </button>
       <!-- Color -->
       <button
@@ -508,8 +574,8 @@
             fill="#666"
           />
         </svg>
+        <span class="tooltiptext">Color</span>
       </button>
-
       <!-- Typography -->
       <button
         class="toolbox_button"
@@ -530,6 +596,7 @@
             fill="#666"
           />
         </svg>
+        <span class="tooltiptext">Text</span>
       </button>
       <!-- Images -->
       <button
@@ -551,6 +618,7 @@
             fill="#666"
           />
         </svg>
+        <span class="tooltiptext">Images</span>
       </button>
       <!-- Layout -->
       <button
@@ -572,6 +640,7 @@
             fill="#666"
           />
         </svg>
+        <span class="tooltiptext">Layout</span>
       </button>
       <!-- Logo -->
       <button
@@ -630,6 +699,7 @@
             />
           </g>
         </svg>
+        <span class="tooltiptext">Logo</span>
       </button>
 
       <!-- END BUTTON PANEL -->
@@ -642,11 +712,12 @@
     </div>
     <div class="right-panel">
       <div class="container">
-        <label class="toolbox_expanded_label" for="widthInput">Width:</label>
-        <input type="number" id="widthInput" value="1200" />
-        <label class="toolbox_expanded_label" for="heightInput">Height:</label>
-        <input type="number" id="heightInput" value="628" />
-        <button onclick="create_canvas()">Create</button>
+        <!-- Change to a login -->
+        <label class="toolbox_expanded_label" for="passwordInput"
+          >Password</label
+        >
+        <input type="password" id="passwordInput" value="The199" />
+        <button onclick="login()">Login</button>
       </div>
     </div>
 
@@ -977,11 +1048,12 @@
         blue: "#C7DAE0",
       };
 
+      var password = "";
       // Image loading animation
       let image_stop_loading_animation;
 
       // Minimum font size
-      const minimum_font_size = 12;
+      const minimum_font_size = 22;
 
       // User defined settings
       let canvas_content = {};
@@ -1007,13 +1079,18 @@
         small: false,
       };
 
+      // Errors
+      canvas_content.error = 0;
+
       // Buton
       canvas_content.button_style = "solid";
-      canvas_content.button_bottom_right = false;
 
       // Text
       canvas_content.logo_offset_text = false;
       canvas_content.vertically_centered_text = false;
+      canvas_content.headline_visibility = true;
+      canvas_content.description_visibility = true;
+      canvas_content.cta_visibility = false;
 
       // Downscaled images
       temp_portal_downscaled_image = [null, null];
@@ -1023,6 +1100,8 @@
       canvas_content.portal_color_overlay = false;
       canvas_content.portal_image_flip = [false, false];
       canvas_content.portal_size_percent = 50;
+      canvas_content.portal_size_values = [0, 30, 50, 70, 100];
+      canvas_content.portal_size_slider = 2;
       canvas_content.portal_upload_image_number = 0;
       canvas_content.portal_override_margins = false;
       canvas_content.portal_primary_image_side = true;
@@ -1043,15 +1122,12 @@
 
       // Typography scale
       const typescale = {
-        96: { body: 48, cta: 32 },
-        64: { body: 32, cta: 20 },
-        48: { body: 24, cta: 20 },
-        32: { body: 16, cta: 12 },
-        24: { body: 14, cta: 12 },
-        20: { body: 12, cta: 12 },
-        16: { body: 12, cta: 12 },
-        14: { body: 12, cta: 12 },
-        12: { body: 12, cta: 12 },
+        80: { body: 48, cta: 32 },
+        64: { body: 32, cta: 22 },
+        48: { body: 24, cta: 18 },
+        32: { body: 22, cta: 16 },
+        24: { body: 22, cta: 16 },
+        22: { body: 22, cta: 16 },
       };
 
       // Button height
@@ -1064,7 +1140,7 @@
         return 4;
       }
 
-      const typescale_map = [96, 64, 48, 32, 24, 20, 16, 14, 12];
+      const typescale_map = [80, 64, 48, 32, 24, 22, 18, 16];
 
       // Downscale the font size
       function reduce_font_size(inputValue) {
@@ -1098,7 +1174,7 @@
       function estimate_typescale(width, height) {
         let area = width * height;
         if (area > 1000000) {
-          return 96;
+          return 80;
         } else if (area <= 1000000 && area > 600000) {
           return 64;
         } else if (area <= 600000 && area > 250000) {
@@ -1146,8 +1222,7 @@
         headline_label.innerText =
           "Headline: " + canvas_content.font_size.headline + "px";
         body_label.innerText = "Body: " + canvas_content.font_size.body + "px";
-        cta_label.innerText =
-          "Call To Action: " + canvas_content.font_size.cta + "px";
+        cta_label.innerText = "Button: " + canvas_content.font_size.cta + "px";
       }
 
       // Random initial headline
@@ -1157,7 +1232,7 @@
         "Decisive action depends on Essential Intelligence.",
         "Life behind the data.",
         "Powerful impact.",
-        "Placing risk and performance in a greater context is Essential Intelligence.",
+        "Essential Intelligence places risk and performance in context",
         "Embracing resilience and growth.",
         "Navigating energy in transition.",
         "Innovating energy for growth.",
@@ -1169,9 +1244,9 @@
       ];
 
       let random_description = [
-        "With S&P Global, navigate the intricate landscape of energy transitions and complex markets with ease, surpassing your expectations at every turn. As markets grow increasingly complex, our solutions offer a path towards understanding, enabling you to make an impact on tomorrow with confidence.",
-        "As energy transitions and markets become more complex, solutions from S&P Global push past your expectations to help you uncover new levels of understanding.",
-        "With increasing complexities in energy transitions and markets, solutions from S&P Global enhance your comprehension, empowering you to shape the future.",
+        "With S&P Global, confidently navigate complex energy transitions and markets, making an impact on tomorrow.",
+        "As energy transitions and markets become more complex, solutions from S&P Global help you stay informed and uncover new levels of understanding.",
+        "With increasing complexities in energy transitions and markets, solutions from S&P Global enhance comprehension, empowering you to shape the future.",
         "Push past your expectations and uncover new levels of understanding with solutions from S&P Global.",
         "Uncover new levels of understanding with solutions from S&P Global.",
         "Complex markets meet unexpected solutions from S&P Global.",
@@ -1231,21 +1306,38 @@
         }
       }
 
+      // Caesar cipher function to encrypt and decrypt
+      function check_login(input) {
+        const key =
+          "3Zg1zdsb06DSrwtmILiFBQuPykfEROjcYAnT294KCpXvWelhGUJ5HVM8aq7oxN";
+        return input
+          .split("")
+          .map((array) => {
+            const cypher = key.indexOf(array);
+            if (cypher === -1) return array;
+            const check = (cypher + input.length) % key.length;
+            return key.charAt(check);
+          })
+          .join("");
+      }
+
+      function login() {
+        password = document.getElementById("passwordInput").value;
+        create_canvas();
+      }
+
       // Functions
       function create_canvas() {
-        var user_set_canvas_size = document.getElementById("widthInput");
-        let width, height;
-        let uploaded_data = false;
-
-        if (user_set_canvas_size) {
-          width = parseInt(document.getElementById("widthInput").value);
-          height = parseInt(document.getElementById("heightInput").value);
-        } else {
-          // If there is no width available go to the saved data
-          width = canvas_content.canvas_width;
-          height = canvas_content.canvas_height;
-          uploaded_data = true;
+        // Check password
+        if (check_login(password) != "pV56vv") {
+          alert("Please check your password and try again");
+          return;
         }
+        let width, height;
+
+        // If there is no width available go to the saved data
+        width = canvas_content.canvas_width;
+        height = canvas_content.canvas_height;
 
         // Add constraints
         var min_width_resolution = 144;
@@ -1303,26 +1395,18 @@
         // Clear downscaled images
         temp_portal_downscaled_image = [null, null];
 
-        // Update the input boxes
-        let inputbox_width = document.getElementById("widthInput");
-        let inputbox_height = document.getElementById("wheightInput");
-        if (inputbox_width) {
-          document.getElementById("widthInput").value = width;
-          document.getElementById("heightInput").value = height;
-        }
-
         // Get canvas type (Vertical, Horizontal, Square)
         get_canvas_type();
 
-        // Goes to defaults if the user isn't loading a save file
-        if (uploaded_data == false) {
-          // Set default to right
-          canvas_content.portal_side = "right";
+        // Set default to right
+        canvas_content.portal_side = "right";
 
-          // Set if vertical set to top
-          if (canvas_content.orientation == "vertical") {
-            canvas_content.portal_side = "top";
-          }
+        // Set if vertical set to top
+        if (
+          canvas_content.orientation == "vertical" ||
+          canvas_content.orientation == "square"
+        ) {
+          canvas_content.portal_side = "top";
         }
 
         // Fit copy
@@ -1491,10 +1575,20 @@
       }
 
       // Color indicator
-      function add_color_indicator(button, rgb) {
+      function add_color_indicator(button, rgb, fontColor) {
         const colorIndicator = document.createElement("div");
         colorIndicator.classList.add("color-indicator");
         colorIndicator.style.backgroundColor = rgb;
+
+        // Create a span element for the letters "Aa"
+        const letters = document.createElement("span");
+        letters.textContent = "Aa";
+        letters.style.fontSize = "11px";
+        letters.style.color = fontColor;
+
+        // Append the letters to the colorIndicator
+        colorIndicator.appendChild(letters);
+
         button.style.position = "relative";
         button.appendChild(colorIndicator);
       }
@@ -1560,7 +1654,7 @@
           return;
         }
 
-        add_label_to_inside_tools_container("Add Portal");
+        add_label_to_inside_tools_container("Add Image");
 
         const dragDropArea = document.createElement("div");
         dragDropArea.classList.add("drag-drop-area");
@@ -1741,7 +1835,7 @@
 
         // set the text and styles for the footer text
         footerText.innerHTML =
-          '<span style="font-weight: bold;">S&amp;P Global</span> | Portal Creator';
+          '<span style="font-weight: bold;">S&amp;P Global</span> | Social Media Creator';
         footerText.style.position = "fixed";
         footerText.style.bottom = "16px";
         footerText.style.right = "16px";
@@ -1847,23 +1941,65 @@
           find_longest_words_by_width(canvas_content.headline, 1);
       }
 
-      //Input box modified
+      // Show character limits
+      function update_character_limit_inputbox(input, maxLength) {
+        let messageElement = document.getElementById(input.name + "_message");
+        // Create the message element if it doesn't exist
+        if (!messageElement) {
+          messageElement = document.createElement("div");
+          messageElement.id = input.name + "_message";
+          messageElement.classList.add("exceeded_character_limit");
+          input.parentNode.appendChild(messageElement);
+        }
+
+        if (input.value.length > maxLength) {
+          input.value = input.value.substring(0, maxLength);
+          input.style.border = "1px solid red";
+          show_character_limit_exceeded_message(input, maxLength);
+        } else {
+          input.style.border = "";
+          hide_character_limit_exceeded_message(input, maxLength);
+        }
+      }
+
+      // Function to show character limit exceeded message
+      function show_character_limit_exceeded_message(input, maxLength) {
+        const messageElement = document.getElementById(input.name + "_message");
+        if (messageElement) {
+          const message = "Max " + maxLength;
+          messageElement.style.color = "red";
+        }
+      }
+
+      // Function to hide character limit exceeded message
+      function hide_character_limit_exceeded_message(input, maxLength) {
+        const messageElement = document.getElementById(input.name + "_message");
+        if (messageElement) {
+          messageElement.textContent =
+            "Characters remaining " + (maxLength - input.value.length);
+          messageElement.style.color = "#2c92e5";
+        }
+      }
+
+      // Input box modified
       function inputbox_event_listener(event) {
         let button_label = event.target.name;
-        let string_value = event.target.value;
 
         if (button_label == "input_headline") {
-          canvas_content.headline = string_value;
+          update_character_limit_inputbox(event.target, 65); // Max recommended headline length
+          canvas_content.headline = event.target.value;
           calculate_headline_minimum_container_width();
         }
 
         if (button_label == "input_body") {
-          canvas_content.body = string_value;
+          update_character_limit_inputbox(event.target, 150); // Max recommended description length
+          canvas_content.body = event.target.value;
           //calculate_headline_minimum_container_width();
         }
 
         if (button_label == "input_cta") {
-          canvas_content.cta = string_value;
+          update_character_limit_inputbox(event.target, 20); // Max recommended CTA length
+          canvas_content.cta = event.target.value;
           //calculate_headline_minimum_container_width();
         }
 
@@ -1878,6 +2014,10 @@
         if (current_panel_open == "File") {
           // Download image
           if (button_label.includes("Download")) {
+            if (canvas_content.error > 0) {
+              alert("Resolve errors before downloading");
+              return;
+            }
             console.log("Download image");
             // Turn off guides
             canvas_content.show_guides = false;
@@ -2034,8 +2174,18 @@
         let button_label = element.innerText;
 
         if (current_panel_open == "Text") {
-          if (button_label.includes("Set font size: Small")) {
-            canvas_content.font_size.small = !canvas_content.font_size.small;
+          if (button_label.includes("Show headline")) {
+            canvas_content.headline_visibility =
+              !canvas_content.headline_visibility;
+          }
+
+          if (button_label.includes("Show description")) {
+            canvas_content.description_visibility =
+              !canvas_content.description_visibility;
+          }
+
+          if (button_label.includes("Show button")) {
+            canvas_content.cta_visibility = !canvas_content.cta_visibility;
           }
 
           if (button_label.includes("Offset text")) {
@@ -2047,15 +2197,20 @@
               !canvas_content.vertically_centered_text;
           }
 
-          if (button_label.includes("Button bottom right")) {
-            canvas_content.button_bottom_right =
-              !canvas_content.button_bottom_right;
+          if (button_label.includes("Small")) {
+            canvas_content.font_size.small = !canvas_content.font_size.small;
           }
         }
 
         if (current_panel_open == "Layout") {
-          if (button_label.includes("Show Grid")) {
-            canvas_content.show_guides = toggleValue;
+          if (button_label.includes("Full image color overlay")) {
+            canvas_content.portal_color_overlay =
+              !canvas_content.portal_color_overlay;
+          }
+          if (button_label.includes("Margins")) {
+            canvas_content.portal_override_margins =
+              !canvas_content.portal_override_margins;
+            update_toolbox_panel("layout_button");
           }
         }
 
@@ -2066,14 +2221,7 @@
             canvas_content.portal_image_flip[n] =
               !canvas_content.portal_image_flip[n];
           }
-          if (button_label.includes("Full image color overlay")) {
-            canvas_content.portal_color_overlay =
-              !canvas_content.portal_color_overlay;
-          }
-          if (button_label.includes("Portal visible margins")) {
-            canvas_content.portal_override_margins =
-              !canvas_content.portal_override_margins;
-          }
+
           if (button_label.includes("Primary image side")) {
             canvas_content.portal_primary_image_side =
               !canvas_content.portal_primary_image_side;
@@ -2091,13 +2239,21 @@
         const insideToolsContainer = document.querySelector(
           ".inside_tools_container"
         );
+        const div = document.createElement("div");
+        div.style = "display: block";
+
         const inputBox = document.createElement("textarea");
         inputBox.className = "toolbox_expanded_inputbox";
         inputBox.placeholder = "Type...";
         inputBox.value = default_string;
         inputBox.name = "input_" + input_box_name;
+        inputBox.id = "input_" + input_box_name;
         inputBox.addEventListener("input", inputbox_event_listener);
-        insideToolsContainer.appendChild(inputBox);
+        inputBox.addEventListener("paste", inputbox_event_listener);
+        inputBox.setAttribute("spellcheck", "true");
+
+        div.appendChild(inputBox);
+        insideToolsContainer.appendChild(div);
         return inputBox;
       }
 
@@ -2120,6 +2276,8 @@
           }
           // Update canvas
           create_canvas();
+          // Resize
+          handle_window_resize();
         };
 
         reader.readAsText(file);
@@ -2148,7 +2306,7 @@
       function pressed_toolbox_button(buttonName) {
         // Buttons do not work if there is no canvas
         if (canvas == undefined) {
-          alert("Create a Canvas first");
+          alert("Please login to start");
           return;
         }
 
@@ -2168,26 +2326,31 @@
         if (buttonName === "color_button") {
           expand_left_panel();
           current_panel_open = "Color";
-          add_label_to_inside_tools_container("Background color");
+          add_label_to_inside_tools_container("Color");
           add_color_indicator(
             add_button_to_inside_tools_container("White"),
-            spglobal_colors.white
+            spglobal_colors.white,
+            "black"
           );
           add_color_indicator(
             add_button_to_inside_tools_container("Black"),
-            spglobal_colors.black
+            spglobal_colors.black,
+            "white"
           );
           add_color_indicator(
             add_button_to_inside_tools_container("Red"),
-            spglobal_colors.red
+            spglobal_colors.red,
+            "white"
           );
           add_color_indicator(
             add_button_to_inside_tools_container("Yellow"),
-            spglobal_colors.yellow
+            spglobal_colors.yellow,
+            "black"
           );
           add_color_indicator(
             add_button_to_inside_tools_container("Blue"),
-            spglobal_colors.blue
+            spglobal_colors.blue,
+            "black"
           );
         }
 
@@ -2196,7 +2359,19 @@
           current_panel_open = "File";
           // Select logo
           add_label_to_inside_tools_container("Image");
-          add_button_to_inside_tools_container("Download", "download_template");
+          let download_label =
+            canvas_content.error > 0
+              ? "Fix errors before downloading"
+              : "Download";
+          let download_button = add_button_to_inside_tools_container(
+            download_label,
+            "download_template"
+          );
+          if (canvas_content.error > 0) {
+            download_button.style.color = "red";
+            download_button.style.border = "1px solid red";
+          }
+
           add_label_to_inside_tools_container("Template");
           add_button_to_inside_tools_container(
             "Save template",
@@ -2226,28 +2401,6 @@
           expand_left_panel();
           current_panel_open = "Text";
 
-          add_button_to_inside_tools_container(
-            "Generate random copy",
-            "random_headline"
-          );
-
-          // Set font size
-          let toggle_font_size = add_toggle_switch_with_label(
-            "Set font size: Small",
-            canvas_content.font_size.small
-          );
-
-          // Set offset text
-          let toggle_text_offset = add_toggle_switch_with_label(
-            "Offset text",
-            canvas_content.logo_offset_text
-          );
-
-          let vertically_centered_text = add_toggle_switch_with_label(
-            "Vertically centered text",
-            canvas_content.vertically_centered_text
-          );
-
           let headline_label = add_label_to_inside_tools_container("Headline");
           headline_label.id = "headline_label";
           //add_text_to_inside_tools_container("Label here");
@@ -2256,14 +2409,19 @@
             "headline",
             canvas_content.headline
           );
-          headline_button.style.height = "100px";
+          headline_button.style.height = "72px";
+
+          /*
           add_button_to_inside_tools_container(
             "Auto capitalize",
             "brand-voice-headline"
           );
+          */
 
+          /*
           // Auto-wordwrap
           add_text_wrap_button_and_input();
+          */
 
           let body_label = add_label_to_inside_tools_container("Body");
           body_label.id = "body_label";
@@ -2272,9 +2430,9 @@
             "body",
             canvas_content.body
           );
-          description_button.style.height = "200px";
+          description_button.style.height = "128px";
 
-          let cta_label = add_label_to_inside_tools_container("Call to action");
+          let cta_label = add_label_to_inside_tools_container("Button");
           cta_label.id = "cta_label";
 
           add_input_box_to_inside_tools_container("cta", canvas_content.cta);
@@ -2286,13 +2444,38 @@
             canvas_content.button_style
           );
 
-          // Set button position (Only visible if the text is top aligned)
-          if (canvas_content.text_bottom_aligned == false) {
-            let toggle_button_location = add_toggle_switch_with_label(
-              "Button bottom right",
-              canvas_content.button_bottom_right
-            );
-          }
+          /*
+          add_button_to_inside_tools_container(
+            "Generate random copy",
+            "random_headline"
+          );
+          */
+          add_label_to_inside_tools_container("Font size");
+
+          // Set font size
+          let toggle_font_size = add_toggle_switch_with_label(
+            "Small",
+            canvas_content.font_size.small
+          );
+
+          add_label_to_inside_tools_container("Visibility");
+          // Headline
+          add_toggle_switch_with_label(
+            "Show headline",
+            canvas_content.headline_visibility
+          );
+
+          // Body
+          add_toggle_switch_with_label(
+            "Show description",
+            canvas_content.description_visibility
+          );
+
+          // Call to action
+          add_toggle_switch_with_label(
+            "Show button",
+            canvas_content.cta_visibility
+          );
 
           // Update labels
           update_font_size_label();
@@ -2302,121 +2485,17 @@
           expand_left_panel();
           current_panel_open = "Layout";
 
-          // Show Grid
-          add_toggle_switch_with_label("Show Grid", canvas_content.show_guides);
-
-          // Update logo position
-          add_label_to_inside_tools_container("Logo Position");
-          create_dropdown_menu(
-            ["top left", "bottom left"], // "top right", "bottom right"
-            "logo_position",
-            canvas_content.logo.corner.toLowerCase().replace(/_/g, " ")
-          );
-
-          // Size and position
-          if (temp_portal_image.length > 0) {
-            // Position
-            add_label_to_inside_tools_container("Portal Position");
-
-            let select_position = create_dropdown_menu(
-              ["top", "right", "bottom", "left"],
-              "portal_side",
-              canvas_content.portal_side
-            );
-
-            // Size
-            add_label_to_inside_tools_container("Portal Size");
-
-            let select_size = create_dropdown_menu(
-              ["100%", "150%", "60%", "50%", "30%", "0%"],
-              "portal_size",
-              canvas_content.portal_size_percent + "%"
-            );
-
-            change_dropdown_menu_text(
-              select_size,
-              "150%",
-              "100% Portal 50% Text"
-            );
-            change_dropdown_menu_text(
-              select_size,
-              "100%",
-              "100% Portal 100% Text"
-            );
-            change_dropdown_menu_text(
-              select_size,
-              "60%",
-              "60% Portal 30% Text"
-            );
-            change_dropdown_menu_text(
-              select_size,
-              "50%",
-              "50% Portal 50% Text"
-            );
-            change_dropdown_menu_text(
-              select_size,
-              "30%",
-              "30% Portal 60% Text"
-            );
-            change_dropdown_menu_text(select_size, "0%", "No Portal 100% Text");
-          }
-
-          /*
-                  // Layout buttons
-                  add_label_to_inside_tools_container("Layout");
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_4_split_assymetrical"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_4_split_symetrical"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_bottom_split_assymetrical"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_bottom_split_symetrical"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_side_split_assymetrical"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_side_split_symetrical"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_3_row"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_3_col"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_2_row"
-                  );
-                  add_square_buttons_to_inside_tools_container(
-                    "layout_buttons",
-                    "layout_2_col"
-                  );
-
-                  */
-
           // Templates
-          add_label_to_inside_tools_container("Templates");
+          add_label_to_inside_tools_container("Template (Size)");
           let select_template = create_dropdown_menu(
             [
               "Select...",
+              "1200x1200 Square",
+              "1200x628 Landscape",
+              "628x1200 Portrait",
               "1920x1080 [Desktop] Landscape",
               "1080x1920 [Desktop] Portrait",
-              "1200x1200 [Social] Square",
-              "1200x628 [Social] Landscape",
-              "628x1200 [Social] Portrait",
+              /*
               "1920x420",
               "1800x300",
               "1500x300",
@@ -2429,11 +2508,85 @@
               "300x600",
               "300x250",
               "160x600",
+              */
             ],
             "canvas_size",
             "Select..."
           );
 
+          // Update logo position
+          add_label_to_inside_tools_container("Logo Alignment");
+          create_dropdown_menu(
+            ["top left", "bottom left"], // "top right", "bottom right"
+            "logo_position",
+            canvas_content.logo.corner.toLowerCase().replace(/_/g, " ")
+          );
+
+          // Size and position
+          if (temp_portal_image.length > 0) {
+            // Position
+            add_label_to_inside_tools_container("Portal Alignment");
+            let portal_position_options = ["top", "right", "bottom", "left"];
+            // Landscape mode
+            if (canvas_content.shortestSide == "height") {
+              portal_position_options = ["right", "left"];
+            }
+            // Portrait mode
+            if (canvas_content.shortestSide == "width") {
+              portal_position_options = ["top", "bottom"];
+            }
+            // Square mode
+            if (canvas.width == canvas.height) {
+              portal_position_options = ["top", "right", "bottom", "left"];
+            }
+
+            let select_position = create_dropdown_menu(
+              portal_position_options,
+              "portal_side",
+              canvas_content.portal_side
+            );
+
+            //canvas_content.portal_size_percent
+            let slider_range =
+              canvas_content.portal_count != 2
+                ? canvas_content.portal_size_values.length
+                : canvas_content.portal_size_values.length - 1;
+            let portal_slider_label_name = "Portal size: ";
+            let portal_slider_label = add_label_to_inside_tools_container(
+              portal_slider_label_name +
+                canvas_content.portal_size_percent +
+                "%",
+              0
+            );
+            create_range_slider(
+              slider_range,
+              canvas_content.portal_size_slider,
+              "portal_size_slider"
+            );
+          }
+
+          // Show margins label
+          if (
+            canvas_content.portal_count == 1 &&
+            canvas_content.orientation == "horizontal"
+          ) {
+            if (canvas_content.portal_size_percent !== 100) {
+              // Margins
+              add_toggle_switch_with_label(
+                "Margins",
+                canvas_content.portal_override_margins
+              );
+            }
+            // Overlay
+            if (is_fullscreen_image()) {
+              add_toggle_switch_with_label(
+                "Full image color overlay",
+                canvas_content.portal_color_overlay
+              );
+            }
+          }
+
+          /*
           // Update layout size
           add_label_to_inside_tools_container("Custom Size");
           add_text_to_inside_tools_container("Width (min 144, max 1920)");
@@ -2460,6 +2613,7 @@
           submit_button.id = "submit_canvas_size_button";
           submit_button.style.marginTop = "4px";
           convert_to_blue_button_style(submit_button);
+          */
         }
 
         // IMAGES
@@ -2470,21 +2624,6 @@
           // Portal upload
           add_file_upload_area();
 
-          // Show margins
-          if (canvas_content.portal_count == 1) {
-            // Margins
-            add_toggle_switch_with_label(
-              "Portal visible margins",
-              canvas_content.portal_override_margins
-            );
-            // Overlay
-            if (is_fullscreen_image()) {
-              add_toggle_switch_with_label(
-                "Full image color overlay",
-                canvas_content.portal_color_overlay
-              );
-            }
-          }
           if (canvas_content.portal_count == 2) {
             add_toggle_switch_with_label(
               "Primary image side",
@@ -2498,7 +2637,7 @@
               let img = get_image(i);
               if (img) {
                 let portal_label =
-                  i == 0 ? "Portal [PRIMARY]" : "Portal [Secondary]";
+                  i == 0 ? "Image [PRIMARY]" : "Image [Secondary]";
                 let label = add_label_to_inside_tools_container(portal_label);
                 label.classList.add("portal_label");
                 // Focal point setter
@@ -2522,7 +2661,7 @@
                   canvas_content.portal_image_scale[i],
                   "image_scale_" + i
                 );
-                // Show Grid
+                // Mirror horizontally
                 let toggle_switch = add_toggle_switch_with_label(
                   "Mirror horizontally",
                   canvas_content.portal_image_flip[i]
@@ -2549,12 +2688,14 @@
         textBalance.classList.add("text_balance");
 
         const label1 = document.createElement("label");
-        label1.textContent = "Auto-wordwrap";
+        label1.textContent = "Wordwrap";
 
         const inputBox = document.createElement("input");
         inputBox.type = "number";
         inputBox.value = canvas_content.headline.split(/\r?\n/).length;
         inputBox.min = 1;
+        inputBox.name = "inputNumber";
+        inputBox.id = "inputNumber";
         inputBox.classList.add("number-input");
 
         const button = document.createElement("button");
@@ -2596,10 +2737,9 @@
       }
 
       // Update button position
-      function if_delay_render_text_update_text_and_button_position() {
+      function if_logo_top_aligned_set_text_bottom_aligned() {
         if (canvas_content.logo.corner.includes("top")) {
           canvas_content.text_bottom_aligned = true;
-          canvas_content.button_bottom_right = false;
         }
       }
 
@@ -2620,8 +2760,7 @@
             canvas_content.logo.corner = position_name;
             canvas_content.text_bottom_aligned = false;
             // Default is to snap the text to the bottom of the canvas
-            if_delay_render_text_update_text_and_button_position();
-            update_toolbox_panel("layout_button");
+            if_logo_top_aligned_set_text_bottom_aligned();
           }
 
           if (button_label == "canvas_size") {
@@ -2638,17 +2777,11 @@
             const width = parseInt(match[1]);
             const height = parseInt(match[2]);
 
-            let input_box_width = document.getElementById("widthInput");
-            let input_box_height = document.getElementById("heightInput");
+            canvas_content.canvas_width = width;
+            canvas_content.canvas_height = height;
 
-            input_box_width.value = width;
-            input_box_height.value = height;
-
-            // Update the canvas
-            let submit_button = document.getElementById(
-              "submit_canvas_size_button"
-            );
-            submit_button.click();
+            // Update canvas
+            create_canvas();
           }
 
           if (button_label == "portal_side") {
@@ -2656,13 +2789,7 @@
             // Clear portal downscaled image
             temp_portal_downscaled_image = [null, null];
           }
-
-          if (button_label == "portal_size") {
-            let value = parseInt(selected_value);
-            canvas_content.portal_size_percent = value;
-            // Clear portal downscaled image
-            temp_portal_downscaled_image = [null, null];
-          }
+          update_toolbox_panel("layout_button");
         }
 
         // Portals
@@ -2723,20 +2850,20 @@
       };
 
       function update_color_scheme(color) {
-        color = color.toLowerCase();
+        color = color.toLowerCase().slice(0, -2);
         // Set background color
         canvas_content.background_color = spglobal_colors[color];
         // Select the correct color scheme
         canvas_content.color_font = spglobal_colors.black;
         canvas_content.color_wordmark = spglobal_colors.red;
 
-        if (color == "yellow" || color == "blue") {
+        if (color.includes("yellow") || color.includes("blue")) {
           canvas_content.color_wordmark = spglobal_colors.black;
         }
-        if (color == "black") {
+        if (color.includes("black")) {
           canvas_content.color_font = spglobal_colors.white;
         }
-        if (color == "red") {
+        if (color.includes("red")) {
           canvas_content.color_font = spglobal_colors.white;
           canvas_content.color_wordmark = spglobal_colors.white;
         }
@@ -2907,8 +3034,7 @@
       function is_fullscreen_image() {
         return (
           canvas_content.portal_size_percent >= 100 &&
-          canvas_content.portal_count == 1 &&
-          canvas_content.portal_override_margins == false
+          canvas_content.portal_count == 1
         );
       }
 
@@ -3043,20 +3169,6 @@
           corner: logo_position,
         };
 
-        // Do not render logo if there are two portals and it fills the entire canvas
-        if (canvas_content.portal_size_percent >= 100) {
-          if (
-            canvas_content.portal_count == 2 ||
-            (canvas_content.portal_count == 1 &&
-              canvas_content.portal_override_margins)
-          ) {
-            console.log(
-              "Logo does not show when the image is full screen with margins"
-            );
-            return;
-          }
-        }
-
         // Load as an image
         let image = new Image();
         image.onload = () => {
@@ -3110,20 +3222,6 @@
           }
         }
 
-        // Add top and bottom margins if the PORTAL has margins and is FULL CANVAS
-        if (
-          canvas_content.portal_count > 0 &&
-          canvas_content.portal_size_percent >= 100
-        ) {
-          if (
-            canvas_content.portal_margins ||
-            canvas_content.portal_override_margins
-          ) {
-            canvas_content.marginTop += margin;
-            canvas_content.marginBottom -= margin;
-          }
-        }
-
         // Margin update
         canvas_content.marginWidth =
           canvas_content.marginRight - canvas_content.marginLeft;
@@ -3157,11 +3255,6 @@
               position.width,
               position.height
             );
-            console.log(
-              `${name} -- width: ${parseInt(
-                position.width
-              )} x height: ${parseInt(position.height)}`
-            );
           }, 100);
         }
       }
@@ -3178,6 +3271,19 @@
         // Portals
         canvas_content.portal_margins = false;
         canvas_content.portal_count = temp_portal_image.length;
+
+        // If the Canvas is vertical do not show the margins
+        if (canvas_content.orientation == "vertical") {
+          canvas_content.portal_override_margins = false;
+        }
+
+        // No full screen double portals
+        if (
+          canvas_content.portal_size_percent == 100 &&
+          canvas_content.portal_count == 2
+        ) {
+          canvas_content.portal_size_percent = 70;
+        }
 
         // Create ONE Portal image on the canvas
         if (
@@ -3249,7 +3355,7 @@
 
       function render_text() {
         // Text and button alignment have to follow strict rules -- Updating to follow those rules
-        if_delay_render_text_update_text_and_button_position();
+        if_logo_top_aligned_set_text_bottom_aligned();
 
         let logo_padding = canvas_content.logo.min_padding * 1.5;
 
@@ -3263,14 +3369,6 @@
           x: canvas_content.marginLeft,
           y: canvas_content.marginTop,
         };
-
-        // If the text is not being moved, render in the available space
-        let delay_render_text =
-          canvas_content.text_bottom_aligned +
-            canvas_content.vertically_centered_text >
-          0
-            ? true
-            : false;
 
         // Default text area available
         let text_area = {
@@ -3287,72 +3385,70 @@
           canvas.height
         );
 
-        // Downscale the font if the user picks a smaller font
-        if (canvas_content.font_size.small) {
-          estimate_headline_size = round_to_nearest_typescale(
-            estimate_headline_size - 1
-          );
-        }
-
-        // Initial guess at largest font size
-        font_size = estimate_headline_size;
-
-        // Remove line breaks if user has turned off formating
         // Headline
         let headline_unformatted = remove_new_lines_and_return_lines(
           canvas_content.headline,
           canvas_content.ignore_line_breaks.headline
         );
 
+        // Downscale the font if the user picks a smaller font
+        if (canvas_content.font_size.small) {
+          // Precalculate the size of the text then downscale
+          headline_properties = add_text_to_canvas(
+            headline_unformatted,
+            position.x,
+            position.y,
+            text_area.width,
+            text_area.height,
+            estimate_headline_size,
+            canvas_content.color_font,
+            0,
+            1.05,
+            700,
+            false
+          );
+
+          estimate_headline_size = round_to_nearest_typescale(
+            headline_properties.font_size - 1
+          );
+        }
+
+        // Initial guess at largest font size
+        font_size = estimate_headline_size;
+
+        // Calculate the position
+        var headline_position_y = position.y;
+
+        // Remove line breaks if user has turned off formating
+        let headline_text = canvas_content.headline_visibility
+          ? headline_unformatted
+          : "";
+
         // Content showing
-        let show_body = canvas_content.body.length > 0;
-        let show_button = canvas_content.cta.length > 0;
+        let show_body =
+          canvas_content.body.length > 0 &&
+          canvas_content.description_visibility;
+        let show_button =
+          canvas_content.cta.length > 0 && canvas_content.cta_visibility;
 
-        // Move text if its offset
-        if (canvas_content.logo_offset_text) {
-          // Logo + Padding
-          let logo_and_margin = canvas_content.logo.width + logo_padding;
-
-          // Shift text over
-          position.x = canvas_content.marginLeft + logo_and_margin;
-
-          // If button is bottom right
-          let estimate_button_padding = calculate_button_padding(canvas.height);
-          let estimate_button_font_size =
-            typescale[round_to_nearest_typescale(estimate_headline_size)].cta;
-
-          // Calculate estimated button width
-          let estimate_button_width = 0;
-          if (canvas_content.button_bottom_right && show_button) {
-            estimate_button_width =
-              estimate_button_padding * 2 +
-              estimate_button_text_size(estimate_button_font_size) +
-              logo_padding;
-          }
-
-          // Reduce text area size
-          text_area.width =
-            canvas_content.marginWidth -
-            logo_and_margin -
-            estimate_button_width;
-        }
-
-        // Limit portal size
-        if (canvas_content.portal_size_percent == 150) {
+        // Limit text area size to 80% max when in Landscape mode and the portal is 0% or 100% of the canvas
+        if (
+          canvas_content.portal_size_percent == 100 ||
+          canvas_content.portal_size_percent == 0 ||
+          canvas_content.portal_count == 0
+        ) {
+          // Limit the width if it's a Landscape canvas
           if (canvas_content.shortestSide == "height") {
-            text_area.width = text_area.width * 0.5;
-          }
-          if (canvas_content.shortestSide == "width") {
-            text_area.height = text_area.height * 0.5;
+            text_area.width = text_area.width * 0.8;
           }
         }
 
-        // ----------------------- RENDER HEADLINE --------------------------//
-        // Render Headline in it is default position
-        let headline_properties = add_text_to_canvas(
-          headline_unformatted,
+        // ----------------------- CALCULATE HEADLINE --------------------------//
+        // Calculate the initial headline size  -- Do not render
+        headline_properties = add_text_to_canvas(
+          headline_text,
           position.x,
-          position.y,
+          headline_position_y,
           text_area.width,
           text_area.height,
           font_size,
@@ -3360,7 +3456,7 @@
           0,
           1.05,
           700,
-          delay_render_text
+          false
         );
 
         // Constrain headline font size to specific sizes
@@ -3370,11 +3466,12 @@
 
         // Calculate the margins between text
         let minimum_margin = 8;
-        let headline_margin =
+        let content_margin =
           headline_properties.font_size == 16
             ? 4
             : Math.max(headline_fixed_font_size * 0.5, minimum_margin);
-        headline_margin = show_body || show_button ? headline_margin : 0; // Collapse margin if there is no content below the headline
+        headline_margin = show_body || show_button ? content_margin : 0; // Collapse margin if there is no content below the headline
+        headline_margin = headline_text == "" ? 0 : headline_margin; // Collapse headline margin if there is no text
 
         // Precalculate BUTTON size so that it can removed from the available space
         let button_padding = calculate_button_padding(canvas.height);
@@ -3383,13 +3480,14 @@
         let button_height = show_button
           ? button_padding * 2 + button_font_size
           : 0;
-        let button_margin_above = show_button ? headline_margin : 0;
+        // Only used to check how much space the body copy would have with the button below it
+        let button_margin_above = show_button ? content_margin : 0;
 
         let button_width =
           button_padding * 2 + estimate_button_text_size(button_font_size);
 
-        // ----------------------- RENDER BODY --------------------------//
-        // Margin between text is half the headline size or a minimum of 16px
+        // ----------------------- CALCULATE BODY --------------------------//
+        // Figure out how much area the BODY has left to be rendered in. The headline and button take up X amount of the available space.
         let body_area_available_height =
           text_area.height -
           headline_properties.height -
@@ -3397,16 +3495,24 @@
           button_height -
           button_margin_above;
 
+        // Fix the font size to a specific typescale
         let body_font_size = typescale[headline_fixed_font_size].body;
 
         // First available position below the headline
-        let position_headline_and_margin_y =
-          position.y + headline_properties.height + headline_margin;
+        let body_position_y =
+          headline_text == ""
+            ? position.y
+            : position.y + headline_properties.height + headline_margin;
 
-        let body_properties = add_text_to_canvas(
-          canvas_content.body,
+        let body_text = canvas_content.description_visibility
+          ? canvas_content.body
+          : "";
+
+        // Calculate the body size -- Do not render
+        var body_properties = add_text_to_canvas(
+          body_text,
           position.x,
-          position_headline_and_margin_y,
+          body_position_y,
           text_area.width,
           body_area_available_height,
           body_font_size,
@@ -3414,101 +3520,284 @@
           0,
           1.2, // Line height
           400, // Regular
-          delay_render_text
+          false // Do not render
         );
 
-        // Button -- Default calculations for position
+        // ----------------------- CALCULATE BUTTON --------------------------//
         // Buttons are positioned under the body unless there is no body then they are below the headline
+        let cta_text = canvas_content.cta_visibility ? canvas_content.cta : "";
+        let body_margin = show_body && show_button ? content_margin : 0;
         let button_position_y = show_body
-          ? position_headline_and_margin_y +
-            body_properties.height +
-            headline_margin
-          : position_headline_and_margin_y;
+          ? body_position_y + body_properties.height + body_margin
+          : body_position_y;
         let button_position_x = position.x;
 
+        // Calculate the button size
+        let button_properties = add_to_canvas_cta_button(
+          cta_text,
+          button_font_size,
+          "bold",
+          canvas_content.button_style,
+          button_padding,
+          button_position_x,
+          button_position_y,
+          false // do not render
+        );
+
+        // Text boxe sizes
+        let body_height = show_body ? body_properties.height : 0;
+        let headline_height = headline_properties.height;
+
         // If the text position needs to be moved, we have pre-caculated the headline and body copy size and delayed rendering the text
-        if (delay_render_text) {
-          // Text boxe sizes
-          let body_height = show_body ? body_properties.height : 0;
-          let body_margin = show_body ? headline_margin : 0;
-
-          let headline_height = headline_properties.height;
-
-          // Headline + Description + Button total height
-          let textframe_height =
-            headline_height +
-            headline_margin +
-            body_height +
-            body_margin +
-            button_height;
-
+        if (canvas_content.text_bottom_aligned) {
           // Move button to the bottom -- If shifted
           button_position_y = show_button
             ? canvas_content.marginBottom - button_height
             : 0;
 
-          let position_headline_and_margin_y =
+          // Body posiiton
+          body_position_y =
             canvas_content.marginBottom -
             body_height -
             body_margin -
             button_height;
 
-          let headline_position_y =
-            canvas_content.marginBottom -
-            headline_height -
-            headline_margin -
-            body_height -
-            body_margin -
-            button_height;
+          // Headline position
+          headline_position_y =
+            body_position_y - headline_height - headline_margin;
 
-          // Drawing the body copy
-          add_text_to_canvas(
-            canvas_content.body,
-            position.x,
-            position_headline_and_margin_y,
-            text_area.width,
-            body_height + 1,
-            body_font_size,
-            canvas_content.color_font,
-            0,
-            1.2, // Line height
-            400, // Regular
-            false // Render to canvas
-          );
+          // Update headline properties
+          headline_properties.y = headline_position_y;
+        }
 
-          // Drawing the headline
-          add_text_to_canvas(
-            headline_unformatted,
+        // Identify where the text bounding box Y position
+        text_area.y = position.y;
+        if (canvas_content.text_bottom_aligned) {
+          text_area.y = canvas_content.marginBottom - text_area.height;
+        }
+
+        // RECALCULATE HEADLINE
+        headline_properties = add_text_to_canvas(
+          headline_text,
+          position.x,
+          headline_position_y,
+          text_area.width,
+          headline_height + 1,
+          font_size,
+          canvas_content.color_font,
+          0,
+          1.05,
+          700,
+          false // Render text
+        );
+
+        // RECALCULATE BODY
+        body_properties = add_text_to_canvas(
+          body_text,
+          position.x,
+          body_position_y,
+          text_area.width,
+          body_height + 1,
+          body_font_size,
+          canvas_content.color_font,
+          0,
+          1.2, // Line height
+          400, // Regular
+          false // Render text
+        );
+
+        // Calculate total height of the container
+        let total_content_height =
+          headline_properties.height +
+          body_properties.height +
+          button_properties.height +
+          headline_margin +
+          body_margin;
+
+        // Determine the starting location of the container
+        let text_initial_position_y = canvas_content.text_bottom_aligned
+          ? canvas_content.marginBottom - total_content_height
+          : canvas_content.marginTop;
+
+        // Recalculate y positions
+        headline_position_y = text_initial_position_y;
+
+        body_position_y =
+          text_initial_position_y +
+          headline_properties.height +
+          headline_margin;
+
+        button_position_y =
+          text_initial_position_y +
+          headline_properties.height +
+          headline_margin +
+          body_properties.height +
+          body_margin;
+
+        // COLLISION DETECTION
+        // Check if text is exceeding the boundary
+        function is_outside_boundingbox(
+          name,
+          position_x,
+          position_y,
+          area_height,
+          area_width,
+          safe_area_position_x,
+          safe_area_position_y,
+          safe_area_height,
+          safe_area_width
+        ) {
+          // Wiggle room
+          let padding = 4;
+          // Exceeds the bottom
+          if (
+            position_y + area_height >
+            safe_area_position_y + safe_area_height + padding
+          ) {
+            return true;
+          }
+          // Exceeds the top
+          if (position_y < safe_area_position_y - padding) {
+            return true;
+          }
+          // Exceeds the width
+          if (
+            position_x + area_width >
+            safe_area_position_x + safe_area_width + padding
+          ) {
+            console.log(name + " exceeds width");
+            return true;
+          }
+          return false;
+        }
+
+        var headline_outside_bounds = is_outside_boundingbox(
+          "Headline",
+          position.x,
+          headline_position_y,
+          headline_height + 1,
+          headline_properties.width,
+          position.x,
+          text_area.y,
+          text_area.height,
+          text_area.width
+        );
+
+        var body_outside_bounds = is_outside_boundingbox(
+          "Body",
+          position.x,
+          body_position_y,
+          body_height + 1,
+          body_properties.width,
+          position.x,
+          text_area.y,
+          text_area.height,
+          text_area.width
+        );
+
+        var button_outside_bounds = is_outside_boundingbox(
+          "Button",
+          position.x,
+          button_position_y,
+          button_properties.height,
+          button_properties.width,
+          position.x,
+          text_area.y,
+          text_area.height,
+          text_area.width
+        );
+
+        // Check if button is out of bounds
+        var button_overlapping_logo = false;
+        var button_bottom_right = false;
+        // Check if the button is outside of the bounds
+        if (button_outside_bounds == true) {
+          // Render the button in the bottom right hand corner
+          button_position_y =
+            canvas_content.marginBottom - button_properties.height;
+          button_position_x =
+            canvas_content.marginRight - button_properties.width;
+          // Set button to bottom right
+          button_bottom_right = true;
+
+          if (
+            button_position_x <
+            canvas_content.marginLeft + canvas_content.logo.width + logo_padding
+          ) {
+            console.log("Button is overlapping logo");
+            button_overlapping_logo = true;
+          }
+        }
+
+        // RENDER THE HEADLINE
+        headline_properties = add_text_to_canvas(
+          headline_text,
+          position.x,
+          headline_position_y,
+          text_area.width,
+          headline_properties.height + 1,
+          headline_properties.font_size,
+          canvas_content.color_font,
+          0,
+          1.05,
+          700,
+          true // Render text
+        );
+
+        // Body area changes if the button is bottom right
+        body_area_available_height = button_bottom_right
+          ? text_area.height - headline_properties.height - headline_margin
+          : body_properties.height + 1;
+
+        // Reset to original estimated body text size
+        body_font_size = button_bottom_right
+          ? body_font_size
+          : body_properties.font_size;
+
+        console.log("body_area height: " + body_area_available_height);
+
+        // RENDER THE BODY
+        body_properties = add_text_to_canvas(
+          body_text,
+          position.x,
+          body_position_y,
+          text_area.width,
+          body_area_available_height,
+          body_font_size,
+          canvas_content.color_font,
+          0,
+          1.2, // Line height
+          400, // Regular
+          true // Render text
+        );
+
+        // Check body collision again
+        if (button_bottom_right) {
+          body_outside_bounds = is_outside_boundingbox(
+            "Body",
             position.x,
-            headline_position_y,
-            text_area.width,
-            headline_height + 1,
-            font_size,
-            canvas_content.color_font,
-            0,
-            1.05,
-            700,
-            false // Render to canvas
+            body_position_y,
+            body_properties.height,
+            body_properties.width,
+            position.x,
+            text_area.y,
+            text_area.height,
+            text_area.width
           );
         }
 
-        // Render the button in the bottom right corner
-        if (canvas_content.button_bottom_right) {
-          button_position_y = canvas_content.marginBottom - button_height;
-          button_position_x = canvas_content.marginRight - button_width;
-        }
-
-        // Create button
+        // RENDER THE BUTTON
         let button;
         if (show_button) {
-          button = add_to_canvas_cta_button(
-            canvas_content.cta,
+          button_properties = add_to_canvas_cta_button(
+            cta_text,
             button_font_size,
             "bold",
             canvas_content.button_style,
             button_padding,
             button_position_x,
-            button_position_y
+            button_position_y,
+            true
           );
         }
 
@@ -3518,42 +3807,151 @@
         canvas_content.font_size.cta = button_font_size;
         update_font_size_label();
 
-        // Draw text guides
-        if (canvas_content.show_guides) {
+        // Draw error messages
+        canvas_content.error =
+          headline_outside_bounds +
+          body_outside_bounds +
+          button_overlapping_logo;
+
+        if (canvas_content.error > 0) {
           // Draw guides around total available text area
-          ctx.strokeStyle = "red";
+          ctx.strokeStyle = "blue"; // Set stroke color to blue
           ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]); // Set the line to be dashed with a pattern of 5 pixels on and 5 pixels off
           ctx.strokeRect(
             position.x,
-            position.y,
+            text_area.y,
             text_area.width,
             text_area.height
           );
 
+          function drawVerticalTextInBlueLabel(ctx, text, boundingBox) {
+            // Set the font and text style
+            ctx.font = "12px Arial";
+            ctx.fillStyle = "white";
+
+            // Calculate the position of the blue label inside the bounding box
+            const labelWidth = 12 + 6; // 12px font size
+            const textWidth = ctx.measureText(text).width;
+            const labelHeight = textWidth + 12; // 6px padding on both sides
+            const labelX = boundingBox.x + boundingBox.width - 6; // 6px padding from right
+            const labelY =
+              boundingBox.y + (boundingBox.height - labelHeight) / 2; // Vertically centered
+
+            // Draw the blue label background
+            ctx.fillStyle = "blue";
+            ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+
+            // Rotate the canvas 90 degrees counter-clockwise for vertical text
+            ctx.save();
+            ctx.translate(labelX + labelWidth / 2, labelY + labelHeight / 2); // Move the origin to the label's center
+            ctx.rotate(-Math.PI / 2); // Rotate 90 degrees counter-clockwise
+
+            // Draw the vertically centered white text inside the blue label
+            ctx.fillStyle = "white";
+            ctx.fillText(text, -textWidth / 2, 6); // Adjust for padding on the right side
+
+            // Restore the canvas to its original state
+            ctx.restore();
+          }
+
+          drawVerticalTextInBlueLabel(ctx, "Safe area", {
+            x: position.x,
+            y: text_area.y,
+            width: text_area.width,
+            height: text_area.height,
+          });
+
+          var error_color = "red";
+          var error_text_color = "white";
+
+          if (canvas_content.background_color == spglobal_colors.red) {
+            var error_color = "white";
+            var error_text_color = "red";
+          }
+
+          // Error message
+          function drawTextInRedRectangle(ctx, text, boundingBox) {
+            // Set the font and text style
+            ctx.font = "12px Arial";
+
+            // Calculate the width and height of the text
+            const textWidth = ctx.measureText(text).width;
+            const textHeight = 12; // 12px font size
+
+            // Calculate the position of the red rectangle inside the bounding box
+            const rectX = boundingBox.x; //+ boundingBox.width - textWidth - 6; // 6px padding from right
+            const rectY = boundingBox.y; //+ boundingBox.height - textHeight - 6; // 6px padding from bottom
+            const rectWidth = textWidth + 12; // 6px padding on both sides
+            const rectHeight = textHeight + 12; // 6px padding on both sides
+
+            // Draw the red rectangle
+            ctx.fillStyle = error_color;
+            ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+
+            // Draw the white text inside the red rectangle
+            ctx.fillStyle = error_text_color;
+            ctx.fillText(text, rectX + 6, rectY + 6 + 12); // 6px padding on both sides
+          }
+
           // Draw guides around headline
-          if (canvas_content.headline.length > 0) {
-            ctx.strokeStyle = "blue";
-            ctx.lineWidth = 1;
+          if (headline_text.length > 0 && headline_outside_bounds) {
+            ctx.strokeStyle = error_color;
+            ctx.lineWidth = 2;
             ctx.strokeRect(
               headline_properties.x,
-              headline_properties.y,
+              headline_position_y,
               headline_properties.width,
               headline_properties.height
+            );
+            drawTextInRedRectangle(
+              ctx,
+              "Error: Outside safe area",
+              headline_properties
             );
           }
 
           // Draw guides around body
-          if (canvas_content.body.length > 0) {
-            ctx.strokeStyle = "blue";
-            ctx.lineWidth = 1;
+          if (body_text.length > 0 && body_outside_bounds) {
+            ctx.strokeStyle = error_color;
+            ctx.lineWidth = 2;
             ctx.strokeRect(
               body_properties.x,
-              body_properties.y,
+              body_position_y,
               body_properties.width,
-              body_area_available_height //body_properties.height
+              body_properties.height
+            );
+            drawTextInRedRectangle(
+              ctx,
+              "Error: Outside safe area",
+              body_properties
+            );
+          }
+
+          // Draw guides around button
+          if (
+            canvas_content.cta.length > 0 &&
+            button_outside_bounds &&
+            button_overlapping_logo
+          ) {
+            ctx.strokeStyle = error_color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(
+              button_properties.x,
+              button_position_y,
+              button_properties.width,
+              button_properties.height
+            );
+            drawTextInRedRectangle(
+              ctx,
+              "Error: Overlaps logo",
+              button_properties
             );
           }
         }
+
+        // To turn off dashed lines and revert to a solid line
+        ctx.setLineDash([]); // Reset the line dash pattern to an empty array
       }
 
       // Wraps an input text into a specified number of lines, balancing text content and ensuring certain phrases are not split across lines.
@@ -3659,9 +4057,14 @@
 
         // Track that we are using portals
         canvas_content.portal = true;
+
         // Always show margins if it is Double Portal or the margins have been overrided
         if (portal_size || canvas_content.portal_override_margins) {
           fit_margins = true;
+        }
+        // Ignore margins if the image is 100 of the screen
+        if (canvas_content.portal_size_percent == 100) {
+          fit_margins = false;
         }
         // Max 100%
         canvas_size = Math.min(100, canvas_size);
@@ -3799,8 +4202,13 @@
         backgroundColor,
         padding,
         x,
-        y
+        y,
+        render = true
       ) {
+        if (text == "") {
+          return { x: x, y: y, width: 0, height: 0 };
+        }
+
         ctx.save();
 
         fontFamily = "Akkurat LL";
@@ -3835,39 +4243,41 @@
         let rectangle_width = textWidth + 2 * hPadding;
         let rectangle_height = textHeight + 2 * vPadding;
 
-        if (backgroundColor != "none") {
-          ctx.beginPath();
-          if (backgroundColor === "outline") {
-            ctx.rect(x, y, rectangle_width, rectangle_height);
-            ctx.stroke();
-          } else {
-            ctx.rect(x, y, rectangle_width, rectangle_height);
-            ctx.fill();
+        if (render) {
+          if (backgroundColor != "none") {
+            ctx.beginPath();
+            if (backgroundColor === "outline") {
+              ctx.rect(x, y, rectangle_width, rectangle_height);
+              ctx.stroke();
+            } else {
+              ctx.rect(x, y, rectangle_width, rectangle_height);
+              ctx.fill();
 
-            // Font color setting the inverse
-            fontColor =
-              canvas_content.color_font == spglobal_colors.black
-                ? spglobal_colors.white
-                : spglobal_colors.black;
+              // Font color setting the inverse
+              fontColor =
+                canvas_content.color_font == spglobal_colors.black
+                  ? spglobal_colors.white
+                  : spglobal_colors.black;
 
-            // Red is a special exemption
-            if (canvas_content.background_color == spglobal_colors.red) {
-              if (canvas_content.portal_size_percent < 100) {
-                fontColor = spglobal_colors.red;
+              // Red is a special exemption
+              if (canvas_content.background_color == spglobal_colors.red) {
+                if (canvas_content.portal_size_percent < 100) {
+                  fontColor = spglobal_colors.red;
+                }
               }
             }
+
+            ctx.closePath();
           }
 
-          ctx.closePath();
+          // Draw text
+          ctx.fillStyle = fontColor;
+          ctx.textBaseline = "top"; // Vertically align text to top
+          ctx.fillText(text, x + hPadding, y + vPadding + fontSize * 0.1); // 0.1 Centers the text more
+          ctx.textBaseline = "alphabetic"; // Set back to default text vertical alignment
+
+          ctx.restore();
         }
-
-        // Draw text
-        ctx.fillStyle = fontColor;
-        ctx.textBaseline = "top"; // Vertically align text to top
-        ctx.fillText(text, x + hPadding, y + vPadding + fontSize * 0.1); // 0.1 Centers the text more
-        ctx.textBaseline = "alphabetic"; // Set back to default text vertical alignment
-
-        ctx.restore();
 
         return {
           x: x,
@@ -4151,7 +4561,7 @@
         letterSpacing,
         defaultLineHeight,
         fontWeight,
-        delayRenderingText
+        renderText
       ) {
         // Get the width of the text
         function get_text_width(text, fontSize, letterSpacing) {
@@ -4314,8 +4724,10 @@
             text_width_max = calculate_width;
           }
         }
-        const textWidth = text_width_max;
-        const textHeight = textForRendering.length * fontSize * lineHeight;
+        let textWidth = text_width_max;
+        // Render nothing if there is no text
+        let textHeight =
+          text == "" ? 0 : textForRendering.length * fontSize * lineHeight;
 
         // Align text vertically to bottom -- If setting is on
         let snap_y = 0;
@@ -4336,7 +4748,7 @@
             i * fontSize * lineHeight +
             fontSize * offset_y;
           // Add superscript, trademark and copywriting
-          if (!delayRenderingText) {
+          if (renderText) {
             draw_text_with_superscript(line, position_x, calculated_position_y);
           }
         }
@@ -4559,6 +4971,15 @@
           canvas_content.portal_image_scale[i] = incrementPosition;
           document.getElementById("zoom-scale-label").innerText =
             zoom_label_generate(incrementPosition);
+        }
+
+        if (slider.name.includes("portal_size_slider")) {
+          canvas_content.portal_size_percent =
+            canvas_content.portal_size_values[incrementPosition];
+          canvas_content.portal_size_slider = incrementPosition;
+          // Clear portal downscaled image
+          temp_portal_downscaled_image = [null, null];
+          update_toolbox_panel("layout_button");
         }
 
         // Clear portal downscaled image
