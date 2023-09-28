@@ -3013,8 +3013,11 @@
         canvas_content.portal_margins = false;
         canvas_content.portal_count = temp_portal_image.length;
 
-        // If the Canvas is vertical do not show the margins
-        if (canvas_content.orientation == "vertical") {
+        // If the Canvas is vertical or square do not show the margins
+        if (
+          canvas_content.orientation == "vertical" ||
+          canvas_content.orientation == "square"
+        ) {
           canvas_content.portal_override_margins = false;
         }
 
