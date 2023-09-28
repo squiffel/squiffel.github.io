@@ -3672,7 +3672,8 @@
 
           // Draw guides around headline
           if (
-            (headline_text.length > 0 && headline_outside_bounds) ||
+            (headline_text.length > 0 &&
+              canvas_content.error.headline_outside_bounds) ||
             show_boundingboxes
           ) {
             ctx.strokeStyle = error_color;
@@ -3692,7 +3693,8 @@
 
           // Draw guides around body
           if (
-            (body_text.length > 0 && body_outside_bounds) ||
+            (body_text.length > 0 &&
+              canvas_content.error.body_outside_bounds) ||
             show_boundingboxes
           ) {
             ctx.strokeStyle = error_color;
@@ -3713,8 +3715,7 @@
           // Draw guides around button
           if (
             canvas_content.cta.length > 0 &&
-            button_outside_bounds &&
-            button_overlapping_logo
+            canvas_content.error.button_overlapping_logo
           ) {
             ctx.strokeStyle = error_color;
             ctx.lineWidth = 3;
