@@ -795,6 +795,9 @@
       // Buton
       canvas_content.button_style = "solid";
 
+      // Canvas name
+      canvas_content.project_name = "Spark-Social";
+
       // Text
       canvas_content.logo_offset_text = false;
       canvas_content.vertically_centered_text = false;
@@ -1214,7 +1217,7 @@
         const formattedDate = `${today.getDate()}-${
           today.getMonth() + 1
         }-${today.getFullYear()}`;
-        link.download = `CI-Event-${formattedDate}.png`;
+        link.download = canvas_content.project_name + `-${formattedDate}.png`;
         link.click();
       }
 
@@ -1735,6 +1738,10 @@
           canvas_content.cta = event.target.value;
         }
 
+        if (button_label == "project_name") {
+          canvas_content.project_name = event.target.value;
+        }
+
         update_canvas();
       }
 
@@ -2066,8 +2073,14 @@
           expand_left_panel();
           current_panel_open = "File";
           // Select logo
+          add_label_to_inside_tools_container("FILENAME");
+          // Project name setting
+          let project_name_inputbox = add_input_box_to_inside_tools_container(
+            "project_name",
+            canvas_content.project_name
+          );
+          project_name_inputbox.style.height = "40px";
           add_label_to_inside_tools_container("FILE");
-
           // Create error label
           if (canvas_content.error.text_outside_bounds > 0) {
             let error_label = add_label_to_inside_tools_container("Error");
