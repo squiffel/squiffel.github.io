@@ -1738,7 +1738,8 @@
           canvas_content.cta = event.target.value;
         }
 
-        if (button_label == "project_name") {
+        if (button_label == "input_project") {
+          console.log(event.target.value);
           canvas_content.project_name = event.target.value;
         }
 
@@ -2076,7 +2077,7 @@
           add_label_to_inside_tools_container("FILENAME");
           // Project name setting
           let project_name_inputbox = add_input_box_to_inside_tools_container(
-            "project_name",
+            "project",
             canvas_content.project_name
           );
           project_name_inputbox.style.height = "40px";
